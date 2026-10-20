@@ -12,8 +12,9 @@ from models import (
 from database import (
     init_db, query_listings, get_listing_by_id,
     get_market_statistics, toggle_watchlist, get_watchlist_ids,
-    get_latest_sync_event
+    get_latest_sync_event, delete_listing_by_id, purge_stale_listings, clear_all_listings
 )
+
 from seed_data import seed_database
 from scrapers.aggregator import ScraperAggregator
 from scheduler import scheduler_instance
@@ -68,6 +69,8 @@ def get_listings(
     source: Optional[str] = Query(None, description="Platform source filter"),
     is_relocatable: Optional[bool] = Query(None, description="Filter for online/relocatable businesses"),
     max_multiple: Optional[float] = Query(None, description="Max Asking Price / Cash Flow multiple"),
+    only_priced: Optional[bool] = Query(False, description="Filter only listings with verified price"),
+    max_age_days: Optional[int] = Query(None, description="Filter listings scraped in last X days"),
     sort_by: Optional[str] = Query("newest", description="Sort order: newest, price_asc, price_desc, cash_flow_desc, multiple_asc, revenue_desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(12, ge=1, le=100)
@@ -85,6 +88,8 @@ def get_listings(
         source=source,
         is_relocatable=is_relocatable,
         max_multiple=max_multiple,
+        only_priced=only_priced,
+        max_age_days=max_age_days,
         sort_by=sort_by,
         page=page,
         page_size=page_size
@@ -100,6 +105,24 @@ def get_listings(
         page_size=page_size,
         total_pages=total_pages
     )
+
+@app.delete("/api/listings/{listing_id}")
+def delete_listing_endpoint(listing_id: str):
+    deleted = delete_listing_by_id(listing_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return {"success": True, "deleted_id": listing_id}
+
+@app.post("/api/listings/purge")
+def purge_listings_endpoint(days: int = Query(14, ge=0), keep_watchlist: bool = Query(True)):
+    deleted_count = purge_stale_listings(days=days, keep_watchlist=keep_watchlist)
+    return {"success": True, "purged_count": deleted_count, "cutoff_days": days}
+
+@app.post("/api/listings/clear")
+def clear_listings_endpoint(keep_watchlist: bool = Query(True)):
+    deleted_count = clear_all_listings(keep_watchlist=keep_watchlist)
+    return {"success": True, "cleared_count": deleted_count}
+
 
 @app.get("/api/listings/{listing_id}", response_model=BusinessListing)
 def get_listing_detail(listing_id: str):

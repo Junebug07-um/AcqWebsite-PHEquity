@@ -47,10 +47,13 @@ export interface FilterState {
   source: string;
   is_relocatable: boolean | null;
   max_multiple: number | null;
+  only_priced: boolean;
+  max_age_days: number | null;
   sort_by: string;
   page: number;
   page_size: number;
 }
+
 
 export interface MarketStats {
   total_listings: number;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState, FilterMetadata } from '../types';
-import { Filter, RotateCcw, DollarSign, Building2, MapPin, Tag, ChevronDown, Check } from 'lucide-react';
+import { Filter, RotateCcw, DollarSign, Building2, MapPin, Tag, ChevronDown, Check, Clock, ShieldCheck } from 'lucide-react';
 
 interface FilterSidebarProps {
   filters: FilterState;
@@ -253,6 +253,59 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                 )
               )}
             </select>
+          </div>
+
+          {/* Data Quality & Recency */}
+          <div>
+            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-400" /> Data Quality & Recency
+            </label>
+            <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer hover:border-slate-700 transition-all mb-3">
+              <input
+                type="checkbox"
+                checked={filters.only_priced === true}
+                onChange={(e) =>
+                  onChange({
+                    only_priced: e.target.checked,
+                    page: 1,
+                  })
+                }
+                className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/30 bg-slate-800 w-4 h-4"
+              />
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-200 font-medium flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" /> Verified Price Only
+                </span>
+                <span className="text-[10px] text-slate-400">Hide unpriced & franchise lead forms</span>
+              </div>
+            </label>
+
+            <div>
+              <span className="text-[11px] font-medium text-slate-400 block mb-1.5">Max Listing Age:</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: 'All Listings', value: null },
+                  { label: 'Past 24 Hours', value: 1 },
+                  { label: 'Past 7 Days', value: 7 },
+                  { label: 'Past 30 Days', value: 30 },
+                ].map((age) => {
+                  const isSelected = filters.max_age_days === age.value;
+                  return (
+                    <button
+                      key={age.label}
+                      onClick={() => onChange({ max_age_days: age.value, page: 1 })}
+                      className={`px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all text-center border ${
+                        isSelected
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-semibold'
+                          : 'bg-slate-900 text-slate-400 hover:text-slate-200 border-slate-800'
+                      }`}
+                    >
+                      {age.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </aside>

@@ -13,6 +13,8 @@ import {
   fetchFilterMetadata,
   fetchWatchlist,
   toggleWatchlistApi,
+  deleteListingApi,
+  purgeStaleListingsApi,
 } from './services/api';
 import {
   BusinessListing,
@@ -29,6 +31,7 @@ import {
   ChevronRight,
   Sparkles,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 
 const initialFilters: FilterState = {
@@ -44,6 +47,8 @@ const initialFilters: FilterState = {
   source: 'All',
   is_relocatable: null,
   max_multiple: null,
+  only_priced: false,
+  max_age_days: null,
   sort_by: 'newest',
   page: 1,
   page_size: 12,
@@ -141,6 +146,33 @@ export const App: React.FC = () => {
     setIsCalculatorOpen(true);
   };
 
+  const handleDeleteListing = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this listing from the database?')) return;
+    try {
+      await deleteListingApi(id);
+      setListings((prev) => prev.filter((item) => item.id !== id));
+      setTotalListings((prev) => Math.max(0, prev - 1));
+      loadInitialData();
+    } catch (err) {
+      console.error('Failed to delete listing:', err);
+      alert('Could not delete listing');
+    }
+  };
+
+  const handlePurgeStale = async () => {
+    if (!window.confirm('Clean stale database records? This will delete listings older than 14 days while keeping your saved watchlist.')) return;
+    try {
+      const res = await purgeStaleListingsApi(14, true);
+      alert(`Cleaned up ${res.purged_count} stale listings.`);
+      await loadInitialData();
+      loadListings();
+    } catch (err) {
+      console.error('Failed to purge stale listings:', err);
+      alert('Could not purge stale listings');
+    }
+  };
+
   const handleScrapeComplete = async () => {
     await loadInitialData();
     loadListings();
@@ -202,6 +234,15 @@ export const App: React.FC = () => {
                 Found <strong className="text-white">{totalListings}</strong> matching business
                 deals
               </span>
+
+              <button
+                onClick={handlePurgeStale}
+                title="Purge listings older than 14 days (watchlist preserved)"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-[11px] font-semibold text-slate-300 hover:text-rose-300 transition-all ml-2"
+              >
+                <Trash2 className="w-3 h-3 text-rose-400" />
+                <span className="hidden sm:inline">Clean Stale Deals</span>
+              </button>
             </div>
 
             {/* Sort Order Selector */}
@@ -266,6 +307,7 @@ export const App: React.FC = () => {
                   listing={item}
                   isSaved={watchlistIds.includes(item.id)}
                   onToggleSave={handleToggleWatchlist}
+                  onDelete={handleDeleteListing}
                   onSelect={setSelectedListing}
                 />
               ))}

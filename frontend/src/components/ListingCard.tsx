@@ -1,11 +1,12 @@
 import React from 'react';
 import { BusinessListing } from '../types';
-import { MapPin, DollarSign, TrendingUp, Bookmark, ExternalLink, ShieldCheck, Clock, Users, Building, Laptop } from 'lucide-react';
+import { MapPin, DollarSign, TrendingUp, Bookmark, ExternalLink, ShieldCheck, Clock, Users, Building, Laptop, Trash2, CalendarCheck } from 'lucide-react';
 
 interface ListingCardProps {
   listing: BusinessListing;
   isSaved: boolean;
   onToggleSave: (id: string, e: React.MouseEvent) => void;
+  onDelete?: (id: string, e: React.MouseEvent) => void;
   onSelect: (listing: BusinessListing) => void;
 }
 
@@ -13,6 +14,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   listing,
   isSaved,
   onToggleSave,
+  onDelete,
   onSelect,
 }) => {
   const formatMoney = (amount: number | null) => {
@@ -20,6 +22,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({
     if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(2)}M`;
     return `$${amount.toLocaleString()}`;
   };
+
+  const getFreshnessBadge = (isoDate?: string | null) => {
+    if (!isoDate) return null;
+    try {
+      const diffDays = Math.floor((Date.now() - new Date(isoDate).getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 0) return 'Today';
+      if (diffDays === 1) return '1d ago';
+      return `${diffDays}d ago`;
+    } catch {
+      return null;
+    }
+  };
+
+  const freshness = getFreshnessBadge(listing.scraped_at);
 
   const getSourceBadge = (source: string) => {
     switch (source.toLowerCase()) {
@@ -66,7 +82,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
         {/* Source Badge & Category */}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
           <span
             className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border backdrop-blur-md shadow-sm ${getSourceBadge(
               listing.source
@@ -77,9 +93,15 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-900/90 text-slate-300 border border-slate-700/60 backdrop-blur-md">
             {listing.category}
           </span>
+          {freshness && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-950/80 text-slate-400 border border-slate-800 backdrop-blur-md flex items-center gap-1">
+              <CalendarCheck className="w-3 h-3 text-emerald-400" />
+              {freshness}
+            </span>
+          )}
         </div>
 
-        {/* Action buttons: Save Bookmark & Direct External Link */}
+        {/* Action buttons: Direct Link, Bookmark & Delete */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <a
             href={listing.source_url}
@@ -100,7 +122,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               className={`w-3.5 h-3.5 ${isSaved ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`}
             />
           </button>
+          {onDelete && (
+            <button
+              onClick={(e) => onDelete(listing.id, e)}
+              title="Remove this listing from database"
+              className="p-2 rounded-full bg-slate-950/80 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-700/80 backdrop-blur-md transition-all active:scale-90"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
+
 
         {/* Location & Relocatable Tag */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-300">

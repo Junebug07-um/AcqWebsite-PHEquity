@@ -279,11 +279,21 @@ SEED_LISTINGS: List[dict] = [
     }
 ]
 
-def seed_database():
+def seed_database(force: bool = False):
     init_db()
+    from database import get_db
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM listings")
+    count = cursor.fetchone()[0]
+    conn.close()
+    if count > 0 and not force:
+        print(f"[Seed] Database already has {count} listings. Skipping seed data insertion.")
+        return
     listings = [BusinessListing(**item) for item in SEED_LISTINGS]
     inserted = upsert_listings_bulk(listings)
     print(f"[Seed] Successfully seeded {inserted} business listings into SQLite database.")
+
 
 if __name__ == "__main__":
     seed_database()

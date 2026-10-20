@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { triggerScraperJob, pollScraperStatus } from '../services/api';
+import { triggerScraperJob, pollScraperStatus, clearListingsApi } from '../services/api';
 import { ScrapeProgress } from '../types';
 import {
   X,
@@ -48,6 +48,7 @@ export const ScrapeModal: React.FC<ScrapeModalProps> = ({
   const [taskId, setTaskId] = useState<string | null>(null);
   const [progress, setProgress] = useState<ScrapeProgress | null>(null);
   const [isScraping, setIsScraping] = useState(false);
+  const [clearFirst, setClearFirst] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const toggleSource = (source: string) => {
@@ -74,6 +75,9 @@ export const ScrapeModal: React.FC<ScrapeModalProps> = ({
     setProgress(null);
 
     try {
+      if (clearFirst) {
+        await clearListingsApi(true);
+      }
       const res = await triggerScraperJob(
         selectedSources,
         keywords.trim() || undefined,
@@ -198,6 +202,24 @@ export const ScrapeModal: React.FC<ScrapeModalProps> = ({
                 className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
               />
             </div>
+
+            {/* Clear Database Before Scraping Checkbox */}
+            <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-950/80 border border-slate-800 cursor-pointer hover:border-slate-700 transition-all">
+              <input
+                type="checkbox"
+                checked={clearFirst}
+                onChange={(e) => setClearFirst(e.target.checked)}
+                className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/30 bg-slate-800 w-4 h-4"
+              />
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-200 font-medium">
+                  Clear old listings before scraping
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  Wipes stale unstarred listings so you start with fresh, real deals (saved watchlist deals are preserved)
+                </span>
+              </div>
+            </label>
 
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs flex items-center gap-2">

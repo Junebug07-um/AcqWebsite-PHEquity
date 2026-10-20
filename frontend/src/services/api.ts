@@ -17,6 +17,8 @@ export async function fetchListings(filters: Partial<FilterState>): Promise<Pagi
   if (filters.source && filters.source !== 'All') params.append('source', filters.source);
   if (filters.is_relocatable !== null && filters.is_relocatable !== undefined) params.append('is_relocatable', filters.is_relocatable.toString());
   if (filters.max_multiple !== null && filters.max_multiple !== undefined) params.append('max_multiple', filters.max_multiple.toString());
+  if (filters.only_priced) params.append('only_priced', 'true');
+  if (filters.max_age_days !== null && filters.max_age_days !== undefined) params.append('max_age_days', filters.max_age_days.toString());
   if (filters.sort_by) params.append('sort_by', filters.sort_by);
   if (filters.page) params.append('page', filters.page.toString());
   if (filters.page_size) params.append('page_size', filters.page_size.toString());
@@ -25,6 +27,7 @@ export async function fetchListings(filters: Partial<FilterState>): Promise<Pagi
   if (!res.ok) throw new Error(`Failed to fetch listings: ${res.statusText}`);
   return res.json();
 }
+
 
 export async function fetchListingDetail(id: string): Promise<BusinessListing> {
   const res = await fetch(`${API_BASE}/listings/${id}`);
@@ -87,4 +90,29 @@ export async function triggerDailySync(): Promise<{ status: string; task_id: str
   if (!res.ok) throw new Error(`Failed to trigger sync: ${res.statusText}`);
   return res.json();
 }
+
+export async function deleteListingApi(listingId: string): Promise<{ success: boolean; deleted_id: string }> {
+  const res = await fetch(`${API_BASE}/listings/${listingId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`Failed to delete listing: ${res.statusText}`);
+  return res.json();
+}
+
+export async function purgeStaleListingsApi(days: number = 14, keepWatchlist: boolean = true): Promise<{ success: boolean; purged_count: number }> {
+  const res = await fetch(`${API_BASE}/listings/purge?days=${days}&keep_watchlist=${keepWatchlist}`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error(`Failed to purge stale listings: ${res.statusText}`);
+  return res.json();
+}
+
+export async function clearListingsApi(keepWatchlist: boolean = true): Promise<{ success: boolean; cleared_count: number }> {
+  const res = await fetch(`${API_BASE}/listings/clear?keep_watchlist=${keepWatchlist}`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error(`Failed to clear database: ${res.statusText}`);
+  return res.json();
+}
+
 

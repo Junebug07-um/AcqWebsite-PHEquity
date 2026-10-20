@@ -49,9 +49,12 @@ class FilterParams(BaseModel):
     source: Optional[str] = None
     is_relocatable: Optional[bool] = None
     max_multiple: Optional[float] = None
+    only_priced: Optional[bool] = False
+    max_age_days: Optional[int] = None
     sort_by: Optional[str] = "newest"  # "price_asc", "price_desc", "cash_flow_desc", "multiple_asc", "newest"
     page: int = 1
     page_size: int = 12
+
 
 class PaginatedListings(BaseModel):
     items: List[BusinessListing]

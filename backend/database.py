@@ -227,9 +227,19 @@ def query_listings(params: FilterParams) -> Tuple[List[BusinessListing], int]:
         conditions.append("price_to_cashflow_multiple <= ? AND price_to_cashflow_multiple > 0")
         values.append(params.max_multiple)
 
+    if getattr(params, "only_priced", False):
+        conditions.append("asking_price IS NOT NULL AND asking_price > 0")
+
+    if getattr(params, "max_age_days", None):
+        import datetime
+        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=params.max_age_days)).isoformat()
+        conditions.append("scraped_at >= ?")
+        values.append(cutoff)
+
     where_clause = ""
     if conditions:
         where_clause = "WHERE " + " AND ".join(conditions)
+
 
     # Count total matching
     count_sql = f"SELECT COUNT(*) FROM listings {where_clause}"
@@ -386,4 +396,42 @@ def get_sync_setting(key: str, default: Optional[str] = None) -> Optional[str]:
     if row:
         return row[0]
     return default
+
+def delete_listing_by_id(listing_id: str) -> bool:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM listings WHERE id = ?", (listing_id,))
+    cursor.execute("DELETE FROM watchlist WHERE listing_id = ?", (listing_id,))
+    conn.commit()
+    deleted = cursor.rowcount > 0
+    conn.close()
+    return deleted
+
+def purge_stale_listings(days: int = 14, keep_watchlist: bool = True) -> int:
+    conn = get_db()
+    cursor = conn.cursor()
+    import datetime
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days)).isoformat()
+    if keep_watchlist:
+        cursor.execute("DELETE FROM listings WHERE scraped_at < ? AND id NOT IN (SELECT listing_id FROM watchlist)", (cutoff,))
+    else:
+        cursor.execute("DELETE FROM listings WHERE scraped_at < ?", (cutoff,))
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+def clear_all_listings(keep_watchlist: bool = True) -> int:
+    conn = get_db()
+    cursor = conn.cursor()
+    if keep_watchlist:
+        cursor.execute("DELETE FROM listings WHERE id NOT IN (SELECT listing_id FROM watchlist)")
+    else:
+        cursor.execute("DELETE FROM listings")
+        cursor.execute("DELETE FROM watchlist")
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
 
